@@ -418,7 +418,7 @@ def run_scraper():
         # Check if any rows were collected
         if all_rows:
             print(f"\nSuccessfully scraped {len(all_rows)} flat details.")
-            output_filename = "ceresne_flats.csv"
+            output_filename = "/app/output/ceresne_flats.csv"
             # Save the results to a CSV file
             with open(output_filename, "w", newline="", encoding="utf8") as f:
                 fieldnames = [
