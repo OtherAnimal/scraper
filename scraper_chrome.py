@@ -2,43 +2,148 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 import re
-import time # Added for potential delays if needed
+import time 
 
-# Import the WebDriver functions from your updated webdriver.py
-from webdriver_chrome import get_chrome_driver, quit_driver # Will now import the Chrome functions
+from webdriver_chrome import get_chrome_driver, quit_driver
+
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException
+
 
 BASE = "https://www.ceresne.sk"
 LIST_URL = BASE + "/ponuka-byvania/"
-HEADERS = {"User-Agent": "Mozilla/5.0"} # Still useful for requests.get()
+HEADERS = {"User-Agent": "Mozilla/5.0"}
 
-def get_listing_links_selenium(driver):
+
+def get_all_listing_links_with_pagination(driver):
     """
-    Extracts flat detail URLs using Selenium for dynamic content.
+    Extracts all flat detail URLs across all paginated pages using Selenium.
     """
-    print(f"Navigating to {LIST_URL} with Selenium...")
+    print(f"Navigating to {LIST_URL} with Selenium for pagination...")
     driver.get(LIST_URL)
-    # Give the page some time to load dynamic content.
-    # In a real scenario, use WebDriverWait and expected_conditions
-    # to wait for specific elements to appear.
-    time.sleep(5) # Adjust as needed, or replace with explicit waits
 
-    # Get the page source after dynamic content has loaded
-    soup = BeautifulSoup(driver.page_source, "lxml")
+    wait = WebDriverWait(driver, 20)
 
-    links = []
-    print("Extracting links from Selenium-rendered page...")
-    for tr in soup.find_all("tr", attrs={"x-on:click": True}):
-        onclick_value = tr["x-on:click"]
-        # The regex needs to account for the full URL and the ', event)' part
-        match = re.search(r"goToFlat\('([^']+)'", onclick_value)
-        if match and "/ponuka-bytov/byt/" in match.group(1):
-            links.append(match.group(1))
-            print(f"Found Link: {match.group(1)}") # Uncomment for debugging
+    all_links = set()
+    current_page_num = 1
 
-    # Remove duplicates
-    unique_links = list(set(links))
-    print(f"Found {len(unique_links)} unique listing links.")
-    return unique_links
+    while True:
+        print(f"\n--- Scraping Page {current_page_num} ---")
+
+        try:
+            # Wait for the main content (e.g., the first 'tr' with x-on:click) to be present
+            # CSS Selector is good for attributes with colons
+            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "tr[x-on\\:click*='goToFlat']")))
+            print("Listings content loaded.")
+        except TimeoutException:
+            print("Timeout waiting for listings to appear. Exiting pagination loop.")
+            break
+
+        soup = BeautifulSoup(driver.page_source, "lxml")
+
+        print("Extracting links from current page...")
+        for tr in soup.find_all("tr", attrs={"x-on:click": True}):
+            onclick_value = tr["x-on:click"]
+            match = re.search(r"goToFlat\('([^']+)'", onclick_value)
+            if match and "/ponuka-bytov/byt/" in match.group(1):
+                full_link = match.group(1)
+                all_links.add(full_link)
+
+        print(f"Total unique links found so far: {len(all_links)}")
+
+        # 2. Find pagination buttons
+        # Change 1: Use local-name() for x-on:click attribute in XPath, or CSS Selector
+        try:
+            # Option A: Using local-name() in XPath (more robust for varied attribute names)
+            # This selects button elements that are children of li, and have an attribute
+            # whose local name is 'click' and its value contains 'setPage('.
+            pagination_buttons = wait.until(
+                EC.presence_of_all_elements_located((By.XPATH, "//li/button[contains(./@*[local-name()='click'], 'setPage(')]"))
+            )
+            # Option B: Using CSS Selector (often simpler for attributes with colons)
+            # pagination_buttons = wait.until(
+            #    EC.presence_of_all_elements_located((By.CSS_SELECTOR, "li > button[x-on\\:click*='setPage']"))
+            # )
+            
+            print(f"Found {len(pagination_buttons)} pagination buttons.")
+        except TimeoutException:
+            print("No pagination buttons found on the page. Assuming single page or end of pagination.")
+            break
+
+        next_page_button = None
+        
+        # We need to re-find elements after each page load because of StaleElementReferenceException.
+        # So we get all buttons again and iterate to find the one we need.
+
+        # Re-find pagination buttons to avoid StaleElementReferenceException
+        # Use the same locator as above
+        pagination_buttons_current_dom = driver.find_elements(By.XPATH, "//li/button[contains(./@*[local-name()='click'], 'setPage(')]")
+        # OR:
+        # pagination_buttons_current_dom = driver.find_elements(By.CSS_SELECTOR, "li > button[x-on\\:click*='setPage']")
+
+
+        # Try to find the button for the next sequential page number (current_page_num + 1)
+        for button in pagination_buttons_current_dom:
+            button_text = button.text.strip()
+            if button_text.isdigit() and int(button_text) == current_page_num + 1:
+                # Check if this button's parent <li> is NOT active
+                try:
+                    parent_li_class = button.find_element(By.XPATH, "..").get_attribute("class")
+                    if "active" not in parent_li_class:
+                        next_page_button = button
+                        print(f"Found button for page {current_page_num + 1}.")
+                        break # Found the next page number button, exit inner loop
+                    else:
+                        print(f"Page {current_page_num + 1} button is active, likely reached end.")
+                except NoSuchElementException:
+                    # Parent li not found, might be an unexpected structure, but continue
+                    next_page_button = button # Assume it's the right one
+                    print(f"Found button for page {current_page_num + 1}, parent LI not found.")
+                    break
+
+        # If no specific next page number button was found, look for a "Next" button
+        if not next_page_button:
+            for button in pagination_buttons_current_dom:
+                button_text = button.text.strip().lower()
+                if button_text == "next":
+                    try:
+                        parent_li_class = button.find_element(By.XPATH, "..").get_attribute("class")
+                        if "active" not in parent_li_class:
+                            next_page_button = button
+                            print("Found 'Next' button.")
+                            break # Found the Next button, exit inner loop
+                        else:
+                            print("Found 'Next' button but it's on an active (current) page. Assuming end of pagination.")
+                    except NoSuchElementException:
+                        next_page_button = button # Assume it's the right one
+                        print("Found 'Next' button, parent LI not found.")
+                        break
+
+        if next_page_button:
+            try:
+                driver.execute_script("arguments[0].click();", next_page_button)
+                current_page_num += 1
+                print(f"Clicked to navigate to page {current_page_num}. Waiting for content to load...")
+                
+                # IMPORTANT WAIT: Wait for the new page's active button to appear
+                wait.until(
+                    EC.presence_of_element_located((By.XPATH, f"//li[contains(@class, 'active')]/button[text()='{current_page_num}']"))
+                )
+                print(f"Page {current_page_num} loaded successfully.")
+                time.sleep(1) # Small buffer
+                
+            except (TimeoutException, StaleElementReferenceException) as e:
+                print(f"Error during page navigation or waiting for new content: {e}")
+                print("Likely reached the last page or an unexpected state. Exiting pagination loop.")
+                break
+        else:
+            print("No more pagination buttons to click. Reached last page.")
+            break
+
+    print(f"\nFinished pagination. Collected {len(all_links)} unique flat listing links.")
+    return list(all_links)
 
 
 def parse_flat_detail_requests(url):
@@ -46,7 +151,13 @@ def parse_flat_detail_requests(url):
     Parses flat detail from a URL using requests (assuming static content).
     """
     print(f"Parsing detail for: {url} with requests...")
-    resp = requests.get(url, headers=HEADERS)
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching detail page {url}: {e}")
+        return None
+
     soup = BeautifulSoup(resp.text, "html.parser")
 
     data = {
@@ -107,26 +218,25 @@ def parse_flat_detail_requests(url):
 def run_scraper():
     """
     Main function to orchestrate the scraping process.
-    Uses Selenium to get listing links and requests to parse details.
+    Uses Selenium to get listing links with pagination and requests to parse details.
     """
-    driver = None # Initialize driver to None
+    driver = None
     all_rows = []
     try:
         print("Starting WebDriver...")
-        driver = get_chrome_driver(headless=True) # This will now call your Chrome setup
+        driver = get_chrome_driver(headless=True)
 
-        # Use Selenium to get the initial list of links
-        links = get_listing_links_selenium(driver)
+        links = get_all_listing_links_with_pagination(driver)
 
-        # Now, iterate through the links and parse details using requests
-        # (assuming detail pages don't require JavaScript)
-        print("Parsing detail pages using requests...")
-        for url in links:
-            detail_data = parse_flat_detail_requests(BASE + url) # Prepend BASE to relative URLs
-            all_rows.append(detail_data)
+        print("\nParsing detail pages using requests...")
+        for url_suffix in links:
+            full_url = BASE + url_suffix
+            detail_data = parse_flat_detail_requests(full_url)
+            if detail_data:
+                all_rows.append(detail_data)
 
         if all_rows:
-            print(f"Successfully scraped {len(all_rows)} flat details.")
+            print(f"\nSuccessfully scraped {len(all_rows)} flat details.")
             output_filename = "ceresne_flats.csv"
             with open(output_filename, "w", newline="", encoding="utf8") as f:
                 fieldnames = [
@@ -142,11 +252,11 @@ def run_scraper():
             print("No data found or scraped.")
 
     except Exception as e:
-        print(f"An error occurred in run_scraper: {e}")
+        print(f"An unexpected error occurred in run_scraper: {e}")
     finally:
-        # Ensure the driver is quit and profile cleaned up, even if errors occur
         print("Quitting WebDriver and cleaning up...")
-        quit_driver(driver)
+        if driver:
+            quit_driver(driver)
 
 if __name__ == "__main__":
     run_scraper()
