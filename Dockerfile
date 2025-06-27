@@ -76,10 +76,18 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of your scraper code into the container
 COPY . .
 
+# Create the /app/logs and /app/output directories and set appropriate permissions.
+# This ensures Python can write to them when the container runs.
+RUN mkdir -p /app/logs /app/output && \
+    chmod -R 755 /app/logs /app/output 
+    # Changed from 777 to 755 for better security
+    
 # Ensure CSV output can be accessed outside the container using a volume
 # Define a volume where the CSV will be saved inside the container
 VOLUME /app/output
+VOLUME /app/logs 
+# Also declare /app/logs as a volume to persist logs
 
 # Command to run your scraper when the container starts
 # -u flag makes output unbuffered for immediate logging
-CMD ["python", "-u", "run_scraper.py"]
+CMD ["python", "-u", "scraper.py"]
