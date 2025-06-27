@@ -89,13 +89,8 @@ Follow these steps to get the scraper running on your system:
     First, clone this repository to your local machine. Replace `your-username` and `your-repo-name` with your actual GitHub username and the name you gave your repository.
 
     ```bash
-    git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
-    cd your-repo-name
-    ```
-    *Example:* If your username is `johndoe` and your repository is named `ceresne-scraper`, the commands would be:
-    ```bash
-    git clone [https://github.com/johndoe/ceresne-scraper.git](https://github.com/johndoe/ceresne-scraper.git)
-    cd ceresne-scraper
+    git clone [https://https://github.com/OtherAnimal/scraper.git](https://https://github.com/OtherAnimal/scraper.git)
+    cd scraper
     ```
 
 2.  **Build the Docker Image:**
