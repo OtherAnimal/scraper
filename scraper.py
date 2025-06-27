@@ -6,6 +6,7 @@ The script extracts all flat detail URLs, parses relevant data fields, and saves
 Robust error handling and pagination logic ensure all listings are captured reliably.
 """
 
+import os
 import requests
 from bs4 import BeautifulSoup
 import csv
@@ -23,11 +24,17 @@ from selenium.common.exceptions import (
     StaleElementReferenceException,
     WebDriverException,
 )
+import logging
+from utils.logging_config import setup_logging
 
 
 BASE = "https://www.ceresne.sk"
 LIST_URL = BASE + "/ponuka-byvania/"
 HEADERS = {"User-Agent": "Mozilla/5.0"}
+
+
+# Obtain a logger for this module AFTER the logging setup
+logger = logging.getLogger(__name__)
 
 
 def get_all_listing_links_with_pagination(driver):
@@ -40,7 +47,7 @@ def get_all_listing_links_with_pagination(driver):
     Returns:
     list: A list of unique flat detail URLs.
     """
-    print(f"Navigating to {LIST_URL} with Selenium for pagination...")
+    logger.info(f"Navigating to {LIST_URL} with Selenium for pagination...")
     driver.get(LIST_URL)
 
     wait = WebDriverWait(driver, 30)
@@ -58,24 +65,27 @@ def get_all_listing_links_with_pagination(driver):
                     (By.CSS_SELECTOR, "tr[x-on\\:click*='goToFlat']")
                 )
             )
-            print("Listings content loaded.")
+            logger.info("Listings content loaded.")
+            logger.debug(f"First listing element found: {first_listing_element.tag_name} with text: {first_listing_element.text[:50]}...")
         except TimeoutException:
-            print(
+            logger.warning(
                 "Timeout waiting for listings to appear on the current page. Exiting pagination loop."
             )
             break
         # Catch other potential WebDriver errors during initial load
         except WebDriverException as e:
-            print(
-                f"WebDriver error during initial listings load: {e}. Exiting pagination loop."
+            logger.error(
+                f"WebDriver error during initial listings load: {e}. Exiting pagination loop.",
+                exc_info=True # Log the full traceback for WebDriver issues
             )
             break
 
         # Get the page source *after* content is loaded for BeautifulSoup parsing
         soup = BeautifulSoup(driver.page_source, "lxml")
+        logger.debug("Page source obtained and parsed with BeautifulSoup.")
 
         # 1. Scrape links from the current page
-        print("Extracting links from current page...")
+        logger.info("Extracting links from current page...")
         current_page_links_count = 0
         # Variable to store IDs/identifiers of listings on the current page
         current_page_listing_ids = set()
@@ -97,10 +107,14 @@ def get_all_listing_links_with_pagination(driver):
                 if full_link not in all_links:
                     all_links.add(full_link)
                     current_page_links_count += 1
+                    logger.debug(f"Added new link: {full_link}. Total unique: {len(all_links)}")
+                else:
+                    logger.debug(f"Link already seen: {full_link}")
 
-        print(
+        logger.info(
             f"Found {current_page_links_count} new links on this page. Total unique links found so far: {len(all_links)}"
         )
+        logger.debug(f"Current page listing IDs collected: {current_page_listing_ids}")
 
         # 2. Determine current page number and find the next page button
         pagination_div = None
@@ -109,14 +123,14 @@ def get_all_listing_links_with_pagination(driver):
                 EC.presence_of_element_located((By.CSS_SELECTOR, "div.pagination"))
                 # EC.presence_of_element_located((By.CSS_SELECTOR, "div.pagination.pdt-20"))
             )
-            print("Pagination div found.")
+            logger.debug("Pagination div found.")
         except TimeoutException:
-            print(
+            logger.info( # Info level because it's a normal end condition or minor issue
                 "Timeout waiting for pagination div. Assuming single page or end of pagination."
             )
             break
         except NoSuchElementException:
-            print(
+            logger.info(
                 "Pagination div not found. Assuming single page or end of pagination."
             )
             break
@@ -124,10 +138,10 @@ def get_all_listing_links_with_pagination(driver):
         all_pagination_buttons_elements = pagination_div.find_elements(
             By.CSS_SELECTOR, "li > button"
         )
+        logger.debug(f"Found {len(all_pagination_buttons_elements)} pagination buttons.")
 
         current_active_page_num = 1
         next_page_button_to_click = None
-
         found_current_active_li = False
 
         # 3. Identify the current active page number
@@ -141,23 +155,24 @@ def get_all_listing_links_with_pagination(driver):
                     if button_text.isdigit():
                         current_active_page_num = int(button_text)
                         found_current_active_li = True
-                        print(
-                            f"DEBUG: Current active page identified as: {current_active_page_num}"
+                        logger.info(
+                            f"Current active page identified as: {current_active_page_num}"
                         )
                     elif (
                         "pagination-previous" in parent_li_class
                         or "pagination-next" in parent_li_class
                     ):
-                        print(
-                            "DEBUG: Active class found on 'Previous' or 'Next' button's parent LI."
+                        logger.debug(
+                            f"Active class found on 'Previous' or 'Next' button's parent LI."
                         )
                     break
             except (NoSuchElementException, StaleElementReferenceException):
+                logger.debug(f"Skipping pagination button due to stale element or not found parent LI: {e}")
                 continue
 
         if not found_current_active_li:
-            print(
-                "WARNING: Could not determine the current active page number from 'li.active'. Assuming page 1."
+            logger.warning(
+                "Could not determine the current active page number from 'li.active'. Assuming page 1."
             )
 
         # 4. Identify the 'Next' button or the next page number button
@@ -173,11 +188,13 @@ def get_all_listing_links_with_pagination(driver):
             if onclick_attr and "setPage(page + 1)" in onclick_attr:
                 if not next_button_potential.get_attribute("disabled"):
                     next_page_button_to_click = next_button_potential
-                    print("Identified 'Next' navigation button.")
+                    logger.info("Identified 'Next' navigation button.")
+                else:
+                    logger.info("The 'Next' button is disabled. Likely on the last page.")
 
         except (NoSuchElementException, StaleElementReferenceException):
-            print(
-                "No 'Next' navigation button (li.pagination-next) found, or it's not clickable/present."
+            logger.debug(
+                f"No 'Next' navigation button (li.pagination-next) found or accessible: {e}. Trying numerical page button."
             )
 
         # If no 'Next' button was found, try to find the next numerical page button
@@ -193,14 +210,14 @@ def get_all_listing_links_with_pagination(driver):
                         parent_li_class = parent_li.get_attribute("class")
                         if "active" not in parent_li_class:
                             next_page_button_to_click = button_el
-                            print(
-                                f"Identified numerical button for page {current_active_page_num + 1}."
+                            logger.info(
+                                f"Identified numerical button for page {expected_next_page_num}."
                             )
                             break
                     except (NoSuchElementException, StaleElementReferenceException):
                         next_page_button_to_click = button_el
-                        print(
-                            f"DEBUG: Identified numerical button for page {current_active_page_num + 1}, parent LI check failed."
+                        logger.debug(
+                            f"Identified numerical button for page {current_active_page_num + 1}, parent LI check failed."
                         )
                         break
 
@@ -218,14 +235,14 @@ def get_all_listing_links_with_pagination(driver):
                 if match:
                     first_listing_link_before_click = match.group(1)
 
-                print(
-                    f"DEBUG: First listing link before click: {first_listing_link_before_click}"
+                logger.debug(
+                    f"First listing link before click: {first_listing_link_before_click}"
                 )
 
                 driver.execute_script(
                     "arguments[0].click();", next_page_button_to_click
                 )
-                print(f"Clicked to navigate. Waiting for listings to change...")
+                logger.info(f"Clicked navigation button for page {current_active_page_num + 1}. Waiting for listings to change...")
 
                 # Wait conditions - robust enough for SPA (Single Page Application) content change:
                 # Wait until the first listing element is *stale* (meaning it's been replaced)
@@ -233,9 +250,9 @@ def get_all_listing_links_with_pagination(driver):
                 try:
                     # Method 1: Wait for Staleness of the *old* first listing element
                     wait.until(EC.staleness_of(first_tr_element_on_page))
-                    print("First listing element from previous page became stale.")
+                    logger.info("First listing element from previous page became stale.")
                 except TimeoutException:
-                    print(
+                    logger.info(
                         "First listing element did not become stale. Trying to detect new content by ID."
                     )
                     # Method 2: If staleness times out (sometimes elements are only updated, not replaced)
@@ -257,9 +274,9 @@ def get_all_listing_links_with_pagination(driver):
                                 )
                             )
                         )
-                        print("New listing content detected.")
+                        logger.info("New listing content detected.")
                     else:
-                        print(
+                        logger.warning(
                             "No listing IDs extracted for current page to check for new content. Falling back to active button change."
                         )
                         # As a last resort, wait for the new active button (if the other waits fail)
@@ -274,11 +291,11 @@ def get_all_listing_links_with_pagination(driver):
                             )
                             # EC.presence_of_element_located((By.XPATH, f"//div[@class='pagination pdt-20']//li[contains(@class, 'active')]/button[text()='{expected_next_page_num}']"))
                         )
-                        print(
+                        logger.info(
                             f"New active page button for page {expected_next_page_num} found (fallback)."
                         )
 
-                print(
+                logger.info(
                     f"Navigation confirmed. Proceeding to scrape data for current page (now effectively page {current_active_page_num + 1})."
                 )
                 time.sleep(1)  # Small buffer after confirmation
@@ -288,21 +305,21 @@ def get_all_listing_links_with_pagination(driver):
                 StaleElementReferenceException,
                 WebDriverException,
             ) as e:
-                print(
+                logger.error(
                     f"Error during page navigation or waiting for new content after click (expected page {current_active_page_num + 1}): {e}"
                 )
-                print(
+                logger.info(
                     "Likely reached the last page or an unexpected state. Exiting pagination loop."
                 )
                 break
         else:
-            print(
+            logger.info(
                 "No suitable pagination button found to click (no next page number or 'Next' button available/non-active). Reached last page."
             )
             break
 
-    print(
-        f"\nFinished pagination. Collected {len(all_links)} unique flat listing links."
+    logger.info(
+        f"Finished pagination. Collected {len(all_links)} unique flat listing links."
     )
     return list(all_links)
 
@@ -318,15 +335,17 @@ def parse_flat_detail_requests(url):
     dict: A dictionary containing parsed flat details.
     Returns None if parsing fails or page is not found.
     """
-    print(f"Parsing detail for: {url} with requests...")
+    logger.info(f"Parsing detail for: {url} with requests...")
     try:
         resp = requests.get(url, headers=HEADERS, timeout=10)
         resp.raise_for_status()
+        logger.debug(f"Successfully fetched {url} with status {resp.status_code}")
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching detail page {url}: {e}")
+        logger.error(f"Error fetching detail page {url}: {e}", exc_info=True)
         return None
 
     soup = BeautifulSoup(resp.text, "html.parser")
+    logger.debug(f"Page content for {url} parsed with BeautifulSoup.")
 
     data = {
         "url": url,
@@ -380,6 +399,7 @@ def parse_flat_detail_requests(url):
         elif "Zvýhodnená cena" in label:
             data["discounted price"] = value.replace("€", "").replace(" ", "").strip()
 
+    logger.info(f"Finished parsing detail for {url}.")
     return data
 
 
@@ -399,15 +419,15 @@ def run_scraper():
 
     # Ensure the WebDriver is initialized and ready
     try:
-        print("Starting WebDriver...")
+        logger.info("Starting WebDriver...")
         driver = get_chrome_driver(headless=True)
 
         links = get_all_listing_links_with_pagination(driver)
 
-        print("\nParsing detail pages using requests...")
+        logger.info("Parsing detail pages using requests...")
         # ... (inside run_scraper function) ...
 
-        print("\nParsing detail pages using requests...")
+        logger.info("\nParsing detail pages using requests...")
 
         # Loop through all collected links and parse details
         for full_url in links:
@@ -417,8 +437,9 @@ def run_scraper():
 
         # Check if any rows were collected
         if all_rows:
-            print(f"\nSuccessfully scraped {len(all_rows)} flat details.")
+            logger.info(f"Successfully scraped {len(all_rows)} flat details.")
             output_filename = "/app/output/ceresne_flats.csv"
+
             # Save the results to a CSV file
             with open(output_filename, "w", newline="", encoding="utf8") as f:
                 fieldnames = [
@@ -437,17 +458,22 @@ def run_scraper():
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(all_rows)
-            print(f"Data saved to {output_filename}")
+            logger.info(f"Data saved to {output_filename}")
         else:
-            print("No data found or scraped.")
+            logger.info("No data found or scraped.")
 
     except Exception as e:
-        print(f"An unexpected error occurred in run_scraper: {e}")
+        logger.critical(f"An unexpected error occurred in run_scraper: {e}")
     finally:
-        print("Quitting WebDriver and cleaning up...")
+        logger.info("Quitting WebDriver and cleaning up...")
         if driver:
             quit_driver(driver)
 
 
 if __name__ == "__main__":
+    # 1. Setup logging first
+    setup_logging()
+    logger.info("Application started. Initiating web scraping process...")
+
+    # 2. Run the scraper itself
     run_scraper()

@@ -12,11 +12,15 @@ from selenium.webdriver.chrome.service import Service as ChromeDriverService
 # from selenium.webdriver.remote.remote_connection import RemoteConnection
 from webdriver_manager.chrome import ChromeDriverManager
 
+import logging
 
 # --- Configuration (Chrome)---
 # IMPORTANT: Replace with the actual path to your Chrome executable.
 # Author's specific case: Chrome is installed directly in the WSL distribution
 CHROME_BINARY_PATH = "/usr/bin/google-chrome"
+
+# Get a logger for the current module. The name will automatically be 'webdriver'
+logger = logging.getLogger(__name__)
 
 
 def get_chrome_driver(headless=True, browser_timeout_seconds=240):
@@ -32,7 +36,7 @@ def get_chrome_driver(headless=True, browser_timeout_seconds=240):
     Returns:
         selenium.webdriver.Chrome: The initialized Chrome WebDriver object.
     """
-    print("Setting up Chrome WebDriver...")
+    logger.info("Setting up Chrome WebDriver...")
 
     options = ChromeOptions()
     options.binary_location = CHROME_BINARY_PATH
@@ -66,14 +70,14 @@ def get_chrome_driver(headless=True, browser_timeout_seconds=240):
             "--allow-running-insecure-content"
         )  # Related to web security
         # options.add_argument("--remote-debugging-port=9222") # Can open a debugging port, useful for manual inspection
-        print("Running Chrome in headless mode.")
+        logger.info("Running Chrome in headless mode.")
     else:
-        print("Running Chrome with GUI.")
+        logger.info("Running Chrome with GUI.")
 
     service = ChromeDriverService(ChromeDriverManager().install())
 
     driver = webdriver.Chrome(service=service, options=options)
-    print("Chrome WebDriver initialized.")
+    logger.info("Chrome WebDriver initialized.")
 
     return driver
 
@@ -84,7 +88,7 @@ def quit_driver(driver):
     """
     if driver:
         driver.quit()
-        print("WebDriver quit successfully.")
+        logger.info("WebDriver quit successfully.")
 
 
 # --- Main execution block (for testing webdriver.py directly) ---
@@ -95,8 +99,8 @@ if __name__ == "__main__":
             headless=True, browser_timeout_seconds=300
         )  # Test with 5 min timeouts
         driver.get("https://www.google.com")
-        print(f"Page Title: {driver.title}")
+        logger.info(f"Page Title: {driver.title}")
     except Exception as e:
-        print(f"An error occurred during direct execution: {e}")
+        logger.critical(f"An error occurred during direct execution: {e}")
     finally:
         quit_driver(driver)
