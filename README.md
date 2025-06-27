@@ -1,4 +1,4 @@
-# [Your Project Name/Scraper Name]
+# Test Scrapper
 
 A robust and automated web scraper designed to extract real estate listings from `ceresne.sk`.
 
@@ -86,10 +86,18 @@ Before you can run this scraper, you need to have the following installed on you
 Follow these steps to get the scraper running on your system:
 
 1.  **Clone the Repository:**
+    First, clone this repository to your local machine. Replace `your-username` and `your-repo-name` with your actual GitHub username and the name you gave your repository.
+
     ```bash
-    git clone [Your GitHub Repo Link - e.g., [https://github.com/your-username/ceresne-scraper.git](https://github.com/your-username/ceresne-scraper.git)]
-    cd [your-project-name-directory] # e.g., cd ceresne-scraper
+    git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
+    cd your-repo-name
     ```
+    *Example:* If your username is `johndoe` and your repository is named `ceresne-scraper`, the commands would be:
+    ```bash
+    git clone [https://github.com/johndoe/ceresne-scraper.git](https://github.com/johndoe/ceresne-scraper.git)
+    cd ceresne-scraper
+    ```
+    
 2.  **Build the Docker Image:**
     This command reads the `Dockerfile` and creates a Docker image named `test-scraper`.
     ```bash
@@ -213,7 +221,7 @@ If your scraper isn't performing as expected:
 3.  **Run Manually with `DEBUG` Logging:**
       * Execute the `docker run` command with `-e LOG_LEVEL=DEBUG` to get more verbose output for debugging.
 
-## Future Improvements (Optional)
+## Future Improvements
 
   * Implement proper error handling and retry mechanisms for network issues or failed page loads.
   * Add proxy rotation to avoid IP blocking.
@@ -222,14 +230,14 @@ If your scraper isn't performing as expected:
   * Implement data validation and cleaning steps.
   * Build a notification system (e.g., email, Slack) for critical errors or successful runs.
 
-## License (Optional)
+## License
 
 MIT License
 
 -----
 
-## Contact (Optional)
+## Contact
 
-[Natalia Egorova] - [Your Email/GitHub Profile Link]
+Natalia Egorova - [GitHub Profile Link](https://github.com/OtherAnimal)
 
 -----
