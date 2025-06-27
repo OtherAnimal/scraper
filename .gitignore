@@ -135,6 +135,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+test_scraper_env/
 
 # Spyder project settings
 .spyderproject
@@ -195,3 +196,10 @@ cython_debug/
 
 # Ignore generated scraper output
 ceresne_flats.csv
+
+# Ignore Debian packages
+*.deb
+
+# Ignore temp directories
+temp/
+temp_py

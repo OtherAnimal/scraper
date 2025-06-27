@@ -4,7 +4,7 @@ FROM python:3.9-slim-buster
 # Install system dependencies required for Chrome and Chromedriver
 # These typically include libraries for fonts, graphics, and system utilities.
 RUN apt-get update && apt-get install -y \
-    # Dependencies for Chrome
+    # Core browser dependencies
     libnss3 \
     libnspr4 \
     libatk1.0-0 \
@@ -19,12 +19,10 @@ RUN apt-get update && apt-get install -y \
     libxshmfence1 \
     libxcb1 \
     libxrender1 \
-    libgconf-2-4 \
     libfontconfig1 \
     libfreetype6 \
     libglib2.0-0 \
     libharfbuzz0b \
-    libjpeg-turbo8 \
     libpng16-16 \
     libwebp6 \
     libxml2 \
@@ -35,11 +33,19 @@ RUN apt-get update && apt-get install -y \
     libxrender1 \
     libxss1 \
     libxtst6 \
+    # Additional common dependencies for headless Chrome on Debian
+    libappindicator3-1 \
+    libasound2 \
+    libdbus-1-3 \
+    libgdk-pixbuf2.0-0 \
+    libgtk-3-0 \
+    libu2f-udev \
+    libvulkan1 \
+    # Utilities
+    gnupg \
     # For unzip and wget
     unzip \
     wget \
-    # For cron (if you later put cron INSIDE the container for a long-running service)
-    # cron \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
