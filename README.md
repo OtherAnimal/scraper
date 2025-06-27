@@ -15,9 +15,9 @@ A robust and automated web scraper designed to extract real estate listings from
 -   [Scheduled Execution (Automation with Cron)](#scheduled-execution-automation-with-cron)
 -   [Output Files](#output-files)
 -   [Troubleshooting & Checking Logs](#troubleshooting--checking-logs)
--   [Future Improvements (Optional)](#future-improvements-optional)
--   [License (Optional)](#license-optional)
--   [Contact (Optional)](#contact-optional)
+-   [Future Improvements](#future-improvements)
+-   [License](#license)
+-   [Contact](#contact)
 
 ---
 
@@ -97,7 +97,7 @@ Follow these steps to get the scraper running on your system:
     git clone [https://github.com/johndoe/ceresne-scraper.git](https://github.com/johndoe/ceresne-scraper.git)
     cd ceresne-scraper
     ```
-    
+
 2.  **Build the Docker Image:**
     This command reads the `Dockerfile` and creates a Docker image named `test-scraper`.
     ```bash
