@@ -66,7 +66,9 @@ def get_all_listing_links_with_pagination(driver):
                 )
             )
             logger.info("Listings content loaded.")
-            logger.debug(f"First listing element found: {first_listing_element.tag_name} with text: {first_listing_element.text[:50]}...")
+            logger.debug(
+                f"First listing element found: {first_listing_element.tag_name} with text: {first_listing_element.text[:50]}..."
+            )
         except TimeoutException:
             logger.warning(
                 "Timeout waiting for listings to appear on the current page. Exiting pagination loop."
@@ -76,7 +78,7 @@ def get_all_listing_links_with_pagination(driver):
         except WebDriverException as e:
             logger.error(
                 f"WebDriver error during initial listings load: {e}. Exiting pagination loop.",
-                exc_info=True # Log the full traceback for WebDriver issues
+                exc_info=True,  # Log the full traceback for WebDriver issues
             )
             break
 
@@ -107,7 +109,9 @@ def get_all_listing_links_with_pagination(driver):
                 if full_link not in all_links:
                     all_links.add(full_link)
                     current_page_links_count += 1
-                    logger.debug(f"Added new link: {full_link}. Total unique: {len(all_links)}")
+                    logger.debug(
+                        f"Added new link: {full_link}. Total unique: {len(all_links)}"
+                    )
                 else:
                     logger.debug(f"Link already seen: {full_link}")
 
@@ -125,7 +129,7 @@ def get_all_listing_links_with_pagination(driver):
             )
             logger.debug("Pagination div found.")
         except TimeoutException:
-            logger.info( # Info level because it's a normal end condition or minor issue
+            logger.info(  # Info level because it's a normal end condition or minor issue
                 "Timeout waiting for pagination div. Assuming single page or end of pagination."
             )
             break
@@ -138,7 +142,9 @@ def get_all_listing_links_with_pagination(driver):
         all_pagination_buttons_elements = pagination_div.find_elements(
             By.CSS_SELECTOR, "li > button"
         )
-        logger.debug(f"Found {len(all_pagination_buttons_elements)} pagination buttons.")
+        logger.debug(
+            f"Found {len(all_pagination_buttons_elements)} pagination buttons."
+        )
 
         current_active_page_num = 1
         next_page_button_to_click = None
@@ -167,7 +173,9 @@ def get_all_listing_links_with_pagination(driver):
                         )
                     break
             except (NoSuchElementException, StaleElementReferenceException):
-                logger.debug(f"Skipping pagination button due to stale element or not found parent LI: {e}")
+                logger.debug(
+                    f"Skipping pagination button due to stale element or not found parent LI: {e}"
+                )
                 continue
 
         if not found_current_active_li:
@@ -190,7 +198,9 @@ def get_all_listing_links_with_pagination(driver):
                     next_page_button_to_click = next_button_potential
                     logger.info("Identified 'Next' navigation button.")
                 else:
-                    logger.info("The 'Next' button is disabled. Likely on the last page.")
+                    logger.info(
+                        "The 'Next' button is disabled. Likely on the last page."
+                    )
 
         except (NoSuchElementException, StaleElementReferenceException):
             logger.debug(
@@ -242,7 +252,9 @@ def get_all_listing_links_with_pagination(driver):
                 driver.execute_script(
                     "arguments[0].click();", next_page_button_to_click
                 )
-                logger.info(f"Clicked navigation button for page {current_active_page_num + 1}. Waiting for listings to change...")
+                logger.info(
+                    f"Clicked navigation button for page {current_active_page_num + 1}. Waiting for listings to change..."
+                )
 
                 # Wait conditions - robust enough for SPA (Single Page Application) content change:
                 # Wait until the first listing element is *stale* (meaning it's been replaced)
@@ -250,7 +262,9 @@ def get_all_listing_links_with_pagination(driver):
                 try:
                     # Method 1: Wait for Staleness of the *old* first listing element
                     wait.until(EC.staleness_of(first_tr_element_on_page))
-                    logger.info("First listing element from previous page became stale.")
+                    logger.info(
+                        "First listing element from previous page became stale."
+                    )
                 except TimeoutException:
                     logger.info(
                         "First listing element did not become stale. Trying to detect new content by ID."
