@@ -1,8 +1,11 @@
 """
-This script uses Selenium library configures
-and initializes a Chrome WebDriver instance
-for web scraping tasks, particularly in a headless mode
-suitable for environments like WSL (Windows Subsystem for Linux).
+webdriver.py
+
+This module provides utilities for configuring and initializing a Selenium Chrome WebDriver,
+with a focus on headless operation and compatibility with environments such as WSL (Windows Subsystem for Linux).
+It includes functions to create a Chrome WebDriver instance with recommended options for stability and performance,
+as well as a utility to properly quit the driver. The configuration supports custom Chrome binary locations and
+extended timeouts for demanding web scraping tasks. Logging is integrated for easier debugging and monitoring.
 """
 
 from selenium import webdriver
