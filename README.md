@@ -1,6 +1,6 @@
 # Test Scrapper
 
-A robust and automated web scraper designed to extract real estate listings from `ceresne.sk`, now complemented by an interactive Streamlit dashboard for data visualization.
+A robust and automated web scraper designed to extract real estate listings from `ceresne.sk`, complemented by an interactive Streamlit dashboard for data visualization.
 
 ## Table of Contents
 
