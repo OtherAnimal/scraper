@@ -203,3 +203,6 @@ ceresne_flats.csv
 # Ignore temp directories
 temp/
 temp_py
+
+# Ignore temporary archive
+test_scraper.zip
