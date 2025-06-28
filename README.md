@@ -96,15 +96,22 @@ Before you can run this project, you need to have the following installed on you
 
 ## Setup & Installation (Scraper)
 
-Follow these steps to get the scraper running on your system:
+Follow these steps to get the scraper running on your system after receiving the project ZIP archive:
 
-1.  **Clone the Repository:**
-    First, clone this repository to your local machine.
+1.  **Extract the Project Archive:**
+    Navigate to the directory where you've saved the provided ZIP file (e.g., `junior_data_engineer_assignment_2_Natalia_Egorova.zip`). Then, extract its contents using the `unzip` command. This will create a new directory containing all the project files.
 
     ```bash
-    git clone [https://github.com/OtherAnimal/scraper.git](https://github.com/OtherAnimal/scraper.git)
-    cd scraper
+    # Navigate to where you downloaded the ZIP, e.g.:
+    # cd ~/Downloads/
+
+    # Extract the ZIP file
+    unzip junior_data_engineer_assignment_2_Natalia_Egorova.zip
+
+    # Navigate into the extracted project directory
+    cd junior_data_engineer_assignment_2_Your_Last_Name
     ```
+    *Note: Replace `junior_data_engineer_assignment_2_Natalia_Egorova.zip` with the actual name of the ZIP file you received/created.*
 
 2.  **Build the Docker Image:**
     This command reads the `Dockerfile` and creates a Docker image named `test-scraper`.
@@ -113,8 +120,8 @@ Follow these steps to get the scraper running on your system:
     ```
     *Note: If you encounter issues with Chromedriver, ensure the `CHROMEDRIVER_VERSION` in your Dockerfile matches the `google-chrome-stable` version installed.*
 
-3.  **Create Output and Log Directories on Host:**
-    These directories will be mounted into the Docker container to persist your scraped data and application logs.
+3.  **Ensure Output and Log Directories Exist:**
+    These directories will be mounted into the Docker container to persist your scraped data and application logs. They should already be present from the ZIP extraction, but this command ensures they exist if somehow missing or you're running on a fresh setup.
     ```bash
     mkdir -p ./logs ./output
     ```
@@ -182,8 +189,9 @@ The scraper can be scheduled to run automatically using `cron` (on Linux/macOS).
 
     ```cron
     # m h  dom mon dow   command
-    0 3 * * * /home/other_animal/test_scraper/run_scheduled_scraper.sh
+    0 3 * * * /home/your_username/your_project_name/run_scheduled_scraper.sh
     ```
+    \* Replace "/home/your_username/your_project_name/" with the actual absolute path to your project directory.
 
       * **Explanation:**
           * `0`: Minute (0)
@@ -191,7 +199,8 @@ The scraper can be scheduled to run automatically using `cron` (on Linux/macOS).
           * `*`: Every day of the month
           * `*`: Every month
           * `*`: Every day of the week
-          * `/home/other_animal/test_scraper/run_scheduled_scraper.sh`: The absolute path to your script.
+          * `/home/your_username/your_project_name/run_scheduled_scraper.sh`: The absolute path to your script.
+            \* Replace "/home/your_username/your_project_name/" with the actual absolute path to your project directory.
 
 5.  **Save and Exit:**
 
@@ -211,8 +220,9 @@ The Streamlit dashboard runs directly on your host machine (within a Python virt
 1.  **Navigate to your Project Directory:**
 
     ```bash
-    cd /home/other_animal/test_scraper/
+    cd /home/your_username/your_project_name/
     ```
+    \* Replace "/home/your_username/your_project_name/" with the actual absolute path to your project directory.
 
 2.  **Create a Python Virtual Environment:**
     It's highly recommended to use a virtual environment to manage dashboard dependencies separately.
@@ -244,9 +254,10 @@ The Streamlit dashboard runs directly on your host machine (within a Python virt
 2.  **Navigate to your Project Directory and Activate Virtual Environment:**
 
     ```bash
-    cd /home/other_animal/test_scraper/
+    cd /home/your_username/your_project_name/
     source ./.venv/bin/activate
     ```
+    \* Replace "/home/your_username/your_project_name/" with the actual absolute path to your project directory.
 
 3.  **Run the Streamlit App:**
 
@@ -317,6 +328,6 @@ MIT License
 
 ## Contact
 
-Natalia Egorova - [GitHub Profile Link](https://github.com/OtherAnimal)
+Natalia Egorova - [Mobile](+421919190482) • [Email](egorovanatasha@gmail.com) • [Linkedin](linkedin.com/in/nataliaegorova)
 
 -----
