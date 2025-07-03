@@ -328,6 +328,6 @@ MIT License
 
 ## Contact
 
-Natalia Egorova - [Mobile](+421919190482) • [Email](egorovanatasha@gmail.com) • [Linkedin](linkedin.com/in/nataliaegorova)
+[Linkedin](linkedin.com/in/nataliaegorova)
 
 -----
