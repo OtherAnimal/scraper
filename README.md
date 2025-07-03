@@ -328,6 +328,6 @@ MIT License
 
 ## Contact
 
-[Linkedin](linkedin.com/in/nataliaegorova)
+
 
 -----
