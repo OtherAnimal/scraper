@@ -98,20 +98,16 @@ Before you can run this project, you need to have the following installed on you
 
 Follow these steps to get the scraper running on your system after receiving the project ZIP archive:
 
-1.  **Extract the Project Archive:**
-    Navigate to the directory where you've saved the provided ZIP file (e.g., `test_assignment.zip`). Then, extract its contents using the `unzip` command. This will create a new directory containing all the project files.
+1.  **1. Clone the Repository:**
+   Use `git clone` to download the project to your local machine:
 
     ```bash
-    # Navigate to where you downloaded the ZIP, e.g.:
-    # cd ~/Downloads/
-
-    # Extract the ZIP file
-    unzip test_assignment.zip
-
-    # Navigate into the extracted project directory
-    cd test_assignment
+    # Clone the repository (replace with the actual repo URL if different)
+    git clone https://github.com/OtherAnimal/scraper.git
+    
+    # Navigate into the project directory
+    cd scraper
     ```
-    *Note: Replace `test_assignment.zip` with the actual name of the ZIP file you received/created.*
 
 2.  **Build the Docker Image:**
     This command reads the `Dockerfile` and creates a Docker image named `test-scraper`.
