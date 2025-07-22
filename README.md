@@ -98,7 +98,7 @@ Before you can run this project, you need to have the following installed on you
 
 Follow these steps to get the scraper running on your system after receiving the project ZIP archive:
 
-1.  **1. Clone the Repository:**
+1.  **Clone the Repository:**
    Use `git clone` to download the project to your local machine:
 
     ```bash
